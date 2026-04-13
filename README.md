@@ -91,6 +91,17 @@ LANGCHAIN_API_KEY=ls_xxxxx
 
 ### Usage
 
+#### Backend API (Server Mode)
+
+```bash
+# Start the API server
+npm run dev:server
+
+# Server will run on http://localhost:3000
+```
+
+#### CLI Mode
+
 ```bash
 # Development mode
 npm run dev -- --url="https://github.com/pipecat-ai/pipecat/blob/main/README.md"
@@ -100,24 +111,44 @@ npm run build
 npm start -- --url="<your-markdown-url>"
 ```
 
+#### Web Frontend
+
+```bash
+# Navigate to frontend directory
+cd quiz-frontend
+
+# Install dependencies
+npm install
+
+# Start development server (runs on http://localhost:3001)
+npm run dev
+```
+
+See `quiz-frontend/README.md` for detailed frontend setup instructions.
+
 ## Project Structure
 
 ```
 quiz-agentic-system/
-├── src/
+├── src/                      # Backend source code
 │   ├── agents/               # LLM agents
+│   ├── api/                  # Express REST API
 │   ├── guards/               # Input/output validation
 │   ├── rag/                  # RAG pipeline components
 │   ├── database/             # SQLite persistence
+│   ├── evaluation/           # Quiz quality evaluation
 │   ├── config/               # Configuration
 │   ├── types/                # TypeScript types & schemas
-│   ├── utils/                # Utilities
 │   └── index.ts              # Main entry point
+├── quiz-frontend/            # Next.js web application
+│   ├── app/                  # Next.js App Router pages
+│   ├── components/           # React components
+│   └── lib/                  # API client and utilities
 ├── data/                     # SQLite database (gitignored)
+├── docs/                     # Technical documentation
 ├── Dockerfile
 ├── docker-compose.yml
-├── package.json
-└── README.md
+└── package.json
 ```
 
 ## Scoring System (Fully Tested)
