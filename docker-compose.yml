@@ -1,0 +1,40 @@
+version: '3.8'
+
+services:
+  quiz-agent:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: quiz-agent
+    ports:
+      - "3000:3000"
+    environment:
+      - NODE_ENV=production
+      - DATABASE_PATH=/app/data/quiz.db
+      - GROQ_API_KEY=${GROQ_API_KEY}
+      - OPENAI_API_KEY=${OPENAI_API_KEY:-}
+      - ANTHROPIC_API_KEY=${ANTHROPIC_API_KEY:-}
+      - LANGCHAIN_TRACING_V2=${LANGCHAIN_TRACING_V2:-false}
+      - LANGCHAIN_API_KEY=${LANGCHAIN_API_KEY:-}
+      - LANGCHAIN_PROJECT=${LANGCHAIN_PROJECT:-quiz-agent}
+      - CHUNK_SIZE=${CHUNK_SIZE:-1000}
+      - CHUNK_OVERLAP=${CHUNK_OVERLAP:-200}
+      - TOP_K_CHUNKS=${TOP_K_CHUNKS:-5}
+      - MAX_CONTENT_LENGTH=${MAX_CONTENT_LENGTH:-12000}
+      - MIN_QUESTIONS=${MIN_QUESTIONS:-5}
+      - MAX_QUESTIONS=${MAX_QUESTIONS:-8}
+      - ANSWERS_PER_QUESTION=${ANSWERS_PER_QUESTION:-4}
+      - ALLOWED_DOMAINS=${ALLOWED_DOMAINS:-github.com,raw.githubusercontent.com,gist.github.com}
+    volumes:
+      - quiz-data:/app/data
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "wget", "--quiet", "--tries=1", "--spider", "http://localhost:3000/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+
+volumes:
+  quiz-data:
+    driver: local
