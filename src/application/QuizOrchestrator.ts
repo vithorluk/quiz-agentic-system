@@ -63,9 +63,12 @@ export class QuizOrchestrator {
       this.logger.warn('Quiz failed quality evaluation but will proceed');
     }
 
+    // Save generated quiz to database
+    const sessionId = await this.database.saveGeneratedQuiz(quiz);
+
     this.logger.success('Quiz generation pipeline completed');
 
-    return { quiz, evaluation };
+    return { quiz, evaluation, sessionId };
   }
 
   async runFullPipeline(rawUrl: string): Promise<QuizResult> {

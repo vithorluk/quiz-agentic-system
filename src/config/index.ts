@@ -5,6 +5,7 @@ dotenv.config();
 
 export const config: Config = {
   // LLM API Keys
+  xaiApiKey: process.env.XAI_API_KEY,
   groqApiKey: process.env.GROQ_API_KEY,
   openaiApiKey: process.env.OPENAI_API_KEY,
   anthropicApiKey: process.env.ANTHROPIC_API_KEY,
@@ -36,9 +37,9 @@ export const config: Config = {
 
 // Validation
 export function validateConfig(): void {
-  if (!config.groqApiKey && !config.openaiApiKey && !config.anthropicApiKey) {
+  if (!config.xaiApiKey && !config.groqApiKey && !config.openaiApiKey && !config.anthropicApiKey) {
     throw new Error(
-      'At least one LLM API key must be configured (GROQ_API_KEY, OPENAI_API_KEY, or ANTHROPIC_API_KEY)'
+      'At least one LLM API key must be configured (XAI_API_KEY, GROQ_API_KEY, OPENAI_API_KEY, or ANTHROPIC_API_KEY)'
     );
   }
 
@@ -53,6 +54,7 @@ export function validateConfig(): void {
   console.log('✓ Configuration validated successfully');
   console.log(`  - Database: ${config.databasePath}`);
   console.log(`  - LLM Providers: ${[
+    config.xaiApiKey ? 'xAI' : null,
     config.groqApiKey ? 'Groq' : null,
     config.openaiApiKey ? 'OpenAI' : null,
     config.anthropicApiKey ? 'Anthropic' : null,

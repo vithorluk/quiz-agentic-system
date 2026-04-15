@@ -4,6 +4,7 @@ export const quizSessions = sqliteTable('quiz_sessions', {
   id: text('id').primaryKey(),
   url: text('url').notNull(),
   topic: text('topic').notNull(),
+  topicSlug: text('topic_slug').notNull(),
   finalScore: real('final_score').notNull(),
   percentage: real('percentage').notNull(),
   correctCount: integer('correct_count').notNull(),

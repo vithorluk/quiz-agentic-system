@@ -16,7 +16,7 @@ export class OpenAIProvider implements LLMProvider {
     this.logger = new Logger('OpenAIProvider');
   }
 
-  async generate(messages: LLMMessage[], temperature = 0.7): Promise<LLMResponse> {
+  async generate(messages: LLMMessage[], _temperature = 0.7): Promise<LLMResponse> {
     this.logger.info(`Generating with ${this.modelName}`);
 
     try {

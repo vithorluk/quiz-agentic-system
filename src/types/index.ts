@@ -70,6 +70,7 @@ export interface RetrievalResult {
 
 export interface Config {
   // LLM
+  xaiApiKey?: string;
   groqApiKey?: string;
   openaiApiKey?: string;
   anthropicApiKey?: string;

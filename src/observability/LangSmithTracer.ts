@@ -59,12 +59,11 @@ export class LangSmithTracer {
         id: runId,
         name: `${metadata.component}.${metadata.operation}`,
         run_type: 'chain',
-        inputs: metadata.metadata || {},
+        inputs: { ...metadata.metadata, sessionId: context?.sessionId },
         outputs: { success: true },
         start_time: startTime,
         end_time: endTime,
         parent_run_id: context?.parentRunId,
-        session_name: context?.sessionId,
         project_name: this.projectName,
       });
 
@@ -76,12 +75,11 @@ export class LangSmithTracer {
         id: runId,
         name: `${metadata.component}.${metadata.operation}`,
         run_type: 'chain',
-        inputs: metadata.metadata || {},
+        inputs: { ...metadata.metadata, sessionId: context?.sessionId },
         error: error instanceof Error ? error.message : String(error),
         start_time: startTime,
         end_time: endTime,
         parent_run_id: context?.parentRunId,
-        session_name: context?.sessionId,
         project_name: this.projectName,
       });
 

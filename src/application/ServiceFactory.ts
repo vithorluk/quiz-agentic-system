@@ -46,6 +46,7 @@ export class ServiceFactory {
 
   static createLLMOrchestrator(): LLMOrchestrator {
     return new LLMOrchestrator({
+      xaiApiKey: config.xaiApiKey,
       groqApiKey: config.groqApiKey,
       openaiApiKey: config.openaiApiKey,
       anthropicApiKey: config.anthropicApiKey

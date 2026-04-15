@@ -2,6 +2,7 @@ import { Router } from 'express';
 import { QuizOrchestrator } from '../application/QuizOrchestrator.js';
 import { DatabaseService } from '../database/DatabaseService.js';
 import { Logger } from '../utils/logger.js';
+import { slugify } from '../utils/slugify.js';
 
 export function createRouter(
   orchestrator: QuizOrchestrator,
@@ -25,7 +26,7 @@ export function createRouter(
 
       const result = await orchestrator.generateQuiz(url);
 
-      res.json({
+      return res.json({
         success: true,
         data: {
           quiz: {
@@ -43,25 +44,25 @@ export function createRouter(
     } catch (error) {
       logger.error('Quiz generation failed', error);
 
-      res.status(500).json({
+      return res.status(500).json({
         error: 'Quiz generation failed',
         message: error instanceof Error ? error.message : 'Unknown error'
       });
     }
   });
 
-  router.get('/api/sessions', async (req, res) => {
+  router.get('/api/sessions', async (_req, res) => {
     try {
       const sessions = await database.getAllSessions();
 
-      res.json({
+      return res.json({
         success: true,
         data: { sessions }
       });
     } catch (error) {
       logger.error('Failed to fetch sessions', error);
 
-      res.status(500).json({
+      return res.status(500).json({
         error: 'Failed to fetch sessions',
         message: error instanceof Error ? error.message : 'Unknown error'
       });
@@ -80,14 +81,14 @@ export function createRouter(
         });
       }
 
-      res.json({
+      return res.json({
         success: true,
         data: { session }
       });
     } catch (error) {
       logger.error('Failed to fetch session', error);
 
-      res.status(500).json({
+      return res.status(500).json({
         error: 'Failed to fetch session',
         message: error instanceof Error ? error.message : 'Unknown error'
       });
@@ -97,7 +98,8 @@ export function createRouter(
   router.get('/api/sessions/topic/:topic', async (req, res) => {
     try {
       const { topic } = req.params;
-      const sessions = await database.getSessionsByTopic(topic);
+      const topicSlug = slugify(topic);
+      const sessions = await database.getSessionsByTopic(topicSlug);
 
       res.json({
         success: true,
@@ -113,8 +115,8 @@ export function createRouter(
     }
   });
 
-  router.get('/health', (req, res) => {
-    res.json({
+  router.get('/health', (_req, res) => {
+    return res.json({
       status: 'healthy',
       timestamp: new Date().toISOString(),
       version: '1.0.0'
