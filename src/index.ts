@@ -48,9 +48,17 @@ async function main() {
     validateConfig();
 
     // Initialize LangSmith tracing if configured
-    if (config.langchainTracing && config.langchainApiKey) {
-      initLangSmith(config.langchainApiKey);
-      logger.info('✓ LangSmith tracing enabled');
+    // LangSmith Client will auto-detect environment variables:
+    // - LANGCHAIN_API_KEY (or LANGSMITH_API_KEY)
+    // - LANGCHAIN_TRACING_V2
+    // - LANGCHAIN_PROJECT (or LANGSMITH_PROJECT)
+    if (config.langchainTracing) {
+      initLangSmith(config.langchainApiKey, config.langchainProject);
+      if (config.langchainApiKey || process.env.LANGSMITH_API_KEY) {
+        logger.info('✓ LangSmith tracing enabled');
+      } else {
+        logger.warn('⚠ LANGCHAIN_TRACING_V2 is true but no API key found. Set LANGCHAIN_API_KEY or LANGSMITH_API_KEY.');
+      }
     }
 
     const args = process.argv.slice(2);

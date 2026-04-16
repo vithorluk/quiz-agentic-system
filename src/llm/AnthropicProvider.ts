@@ -16,7 +16,15 @@ export class AnthropicProvider implements LLMProvider {
   async generate(messages: LLMMessage[], temperature = 0.7): Promise<LLMResponse> {
     this.logger.info(`Generating with ${this.modelName}`);
 
-    return traceOperation('AnthropicProvider.generate', { model: this.modelName, temperature }, async () => {
+    return traceOperation(
+      'AnthropicProvider.generate',
+      {
+        model: this.modelName,
+        temperature,
+        messages: messages.map(m => ({ role: m.role, content: m.content.substring(0, 500) + (m.content.length > 500 ? '...' : '') })),
+        message_count: messages.length,
+      },
+      async () => {
       try {
         // Separate system messages from other messages
         const systemMessages = messages.filter(msg => msg.role === 'system').map(msg => msg.content);
@@ -53,7 +61,12 @@ export class AnthropicProvider implements LLMProvider {
         this.logger.error('Anthropic generation failed', error);
         throw error;
       }
-    });
+    },
+    (result) => ({
+      content: result.content.substring(0, 1000) + (result.content.length > 1000 ? '...' : ''),
+      content_length: result.content.length,
+      model: result.model,
+    }));
   }
 
   getName(): string {

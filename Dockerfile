@@ -1,4 +1,4 @@
-FROM node:20-alpine AS builder
+FROM node:20-slim AS builder
 
 WORKDIR /app
 
@@ -11,14 +11,16 @@ COPY src ./src
 
 RUN npm run build
 
-FROM node:20-alpine AS production
+FROM node:20-slim AS production
 
 WORKDIR /app
 
-RUN apk add --no-cache \
+# Install build dependencies needed for native modules
+RUN apt-get update && apt-get install -y \
     python3 \
     make \
-    g++
+    g++ \
+    && rm -rf /var/lib/apt/lists/*
 
 COPY package*.json ./
 
@@ -33,4 +35,4 @@ ENV DATABASE_PATH=/app/data/quiz.db
 
 EXPOSE 3000
 
-CMD ["node", "dist/index.js"]
+CMD ["node", "dist/index.js", "--server"]

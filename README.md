@@ -41,17 +41,26 @@ Production-ready AI quiz generation system built with DDD, SOLID principles, and
 
 ## Architecture
 
-```
-Input URL → Input Guard → Content Fetcher → RAG Pipeline
-                                             ↓
-                                          Chunker → Embedder → Vector Store
-                                                                    ↓
-                                                                 Retriever
-                                                                    ↓
-Quiz Generator (LLM) → Output Guard → Quiz Runner (CLI)
-                                         ↓
-                                      Scorer → Database
-```
+### 🏗️ System Overview
+
+![Full System Architecture](./assets/images/quiz_agent_full_architecture.svg)
+
+The system follows a layered architecture with clear separation of concerns:
+
+- **Security Boundary** (Red): Input/Output guards with URL sanitization and domain allowlist
+- **Data Pipeline** (Teal): RAG components for content processing and retrieval
+- **LLM Agents** (Purple): Quiz generation and evaluation with model fallback
+- **Scoring & Persistence** (Amber/Coral): Mathematical scoring and SQLite storage
+- **Observability** (Dashed): LangSmith tracing across all components
+
+### ☁️ Cloud Deployment
+
+![Cloud Infrastructure](./assets/images/cloud_infra_architecture.svg)
+
+Production deployment spans:
+- **Vercel**: Next.js frontend with edge middleware and global CDN
+- **Render**: Backend API with auto-scaling and persistent SQLite disk
+- **External Services**: LangSmith observability, LLM provider APIs
 
 ## Quick Start
 
@@ -84,9 +93,10 @@ GROQ_API_KEY=gsk_xxxxx
 OPENAI_API_KEY=sk-xxxxx
 ANTHROPIC_API_KEY=sk-ant-xxxxx
 
-# Optional: LangSmith observability
+# Optional: LangSmith observability (see docs/LANGSMITH_OBSERVABILITY.md)
 LANGCHAIN_TRACING_V2=true
-LANGCHAIN_API_KEY=ls_xxxxx
+LANGCHAIN_API_KEY=lsv2_pt_xxxxx
+LANGCHAIN_PROJECT=Quiz Agent System
 ```
 
 ### Usage
@@ -220,7 +230,47 @@ npm test -- --coverage
 - `src/agents/__tests__/ScorerAgent.test.ts` (18 test cases)
 - `src/evaluation/__tests__/QuizEvaluator.test.ts` (10 test cases)
 
-## Documentation
+## API Documentation
+
+### 📚 Interactive API Docs
+
+The backend exposes a fully documented REST API with **Swagger UI**:
+
+![API Documentation](./assets/images/API%20Docs.png)
+
+Access at: `http://localhost:3000/docs`
+
+### Endpoints
+
+- `POST /api/quiz/generate` - Generate quiz from URL
+- `GET /api/sessions` - Get all quiz sessions
+- `GET /api/sessions/:id` - Get specific session
+- `GET /api/sessions/topic/:topic` - Get sessions by topic
+- `GET /health` - Health check
+
+## Observability
+
+### 🔍 LangSmith Tracing
+
+![LangSmith Dashboard](./assets/images/Observability.png)
+
+All LLM interactions are automatically traced to LangSmith with:
+- **Provider identification**: Which LLM (Anthropic, xAI, Groq, OpenAI) was used
+- **Input prompts**: Full conversation context (truncated for privacy)
+- **Output content**: Generated responses with metadata
+- **Performance metrics**: Latency, token usage, error rates
+
+**📖 Complete Setup Guide**: [docs/LANGSMITH_OBSERVABILITY.md](./docs/LANGSMITH_OBSERVABILITY.md)
+
+Quick setup:
+```bash
+# Add to .env
+LANGCHAIN_TRACING_V2=true
+LANGCHAIN_API_KEY=lsv2_pt_your_key_here
+LANGCHAIN_PROJECT=Quiz Agent System
+```
+
+## Technical Documentation
 
 - **RAG Decisions**: `docs/RAG_TECHNICAL_DECISIONS.md`
   - Why 1000 token chunks?
@@ -233,6 +283,12 @@ npm test -- --coverage
   - Render configuration
   - Rollback procedure
   - Scaling triggers
+
+- **LangSmith Observability**: `docs/LANGSMITH_OBSERVABILITY.md`
+  - Complete setup guide
+  - All LLM providers traced
+  - Troubleshooting
+  - Best practices
 
 ## Interview Prep: Key Talking Points
 
