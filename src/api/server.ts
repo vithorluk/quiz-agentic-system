@@ -89,8 +89,8 @@ export class Server {
 
   async start(): Promise<void> {
     return new Promise((resolve) => {
-      this.app.listen(this.config.port, () => {
-        this.logger.success(`Server running on port ${this.config.port}`);
+      this.app.listen(this.config.port, '0.0.0.0', () => {
+        this.logger.success(`Server running on http://0.0.0.0:${this.config.port}`);
         resolve();
       });
     });

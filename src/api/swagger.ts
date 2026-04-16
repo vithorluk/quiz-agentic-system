@@ -3,6 +3,7 @@ import swaggerJsdoc from 'swagger-jsdoc';
 // Determine the server URL based on environment
 const getServers = () => {
   const servers = [];
+  const isProduction = process.env.NODE_ENV === 'production' || process.env.RENDER_EXTERNAL_URL;
 
   // Add production server if RENDER_EXTERNAL_URL is set (Render deployment)
   if (process.env.RENDER_EXTERNAL_URL) {
@@ -20,13 +21,16 @@ const getServers = () => {
     });
   }
 
-  // Always add localhost for development
-  const port = process.env.PORT || '3000';
-  servers.push({
-    url: `http://localhost:${port}`,
-    description: 'Development server',
-  });
+  // Only add localhost in development (not in production)
+  if (!isProduction) {
+    const port = process.env.PORT || '3000';
+    servers.push({
+      url: `http://localhost:${port}`,
+      description: 'Development server',
+    });
+  }
 
+  // Fallback to localhost if no servers configured
   return servers.length > 0 ? servers : [
     {
       url: 'http://localhost:3000',
