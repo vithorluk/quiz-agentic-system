@@ -1,5 +1,40 @@
 import swaggerJsdoc from 'swagger-jsdoc';
 
+// Determine the server URL based on environment
+const getServers = () => {
+  const servers = [];
+
+  // Add production server if RENDER_EXTERNAL_URL is set (Render deployment)
+  if (process.env.RENDER_EXTERNAL_URL) {
+    servers.push({
+      url: process.env.RENDER_EXTERNAL_URL,
+      description: 'Production server (Render)',
+    });
+  }
+
+  // Add custom production URL if set
+  if (process.env.PRODUCTION_URL) {
+    servers.push({
+      url: process.env.PRODUCTION_URL,
+      description: 'Production server',
+    });
+  }
+
+  // Always add localhost for development
+  const port = process.env.PORT || '3000';
+  servers.push({
+    url: `http://localhost:${port}`,
+    description: 'Development server',
+  });
+
+  return servers.length > 0 ? servers : [
+    {
+      url: 'http://localhost:3000',
+      description: 'Development server',
+    }
+  ];
+};
+
 const options = {
   definition: {
     openapi: '3.0.0',
@@ -12,16 +47,7 @@ const options = {
         url: 'https://github.com/yourusername/quiz-agentic-system',
       },
     },
-    servers: [
-      {
-        url: 'http://localhost:3000',
-        description: 'Development server',
-      },
-      {
-        url: 'https://api.example.com',
-        description: 'Production server',
-      },
-    ],
+    servers: getServers(),
     components: {
       schemas: {
         Question: {

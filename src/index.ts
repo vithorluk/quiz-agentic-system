@@ -21,8 +21,9 @@ async function startServerMode() {
 
   await database.initialize();
 
+  const port = parseInt(process.env.PORT || '3000', 10);
   const server = new Server(
-    { port: 3000 },
+    { port },
     orchestrator,
     database
   );
@@ -37,8 +38,8 @@ async function startServerMode() {
   logger.info('  GET  /health - Health check');
   logger.info('');
   logger.info('Documentation:');
-  logger.info('  Swagger UI: http://localhost:3000/docs');
-  logger.info('  OpenAPI JSON: http://localhost:3000/docs.json');
+  logger.info(`  Swagger UI: http://localhost:${port}/docs`);
+  logger.info(`  OpenAPI JSON: http://localhost:${port}/docs.json`);
 }
 
 async function main() {
