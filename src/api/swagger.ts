@@ -373,7 +373,7 @@ const options = {
     paths: {
       '/api/quiz/generate': {
         post: {
-          tags: ['Quiz Generation'],
+          tags: ['Quiz'],
           summary: 'Generate a quiz from a URL',
           description: 'Takes a URL (markdown or webpage) and generates an interactive quiz with RAG-powered content extraction',
           requestBody: {
@@ -431,7 +431,7 @@ const options = {
       },
       '/api/sessions': {
         get: {
-          tags: ['Quiz Sessions'],
+          tags: ['Quiz'],
           summary: 'Get all quiz sessions',
           description: 'Retrieve all saved quiz sessions from the database',
           responses: {
@@ -476,7 +476,7 @@ const options = {
       },
       '/api/sessions/{id}': {
         get: {
-          tags: ['Quiz Sessions'],
+          tags: ['Quiz'],
           summary: 'Get a specific quiz session',
           description: 'Retrieve details of a specific quiz session by ID, including all answers and scoring',
           parameters: [
@@ -540,7 +540,7 @@ const options = {
       },
       '/api/sessions/topic/{topic}': {
         get: {
-          tags: ['Quiz Sessions'],
+          tags: ['Quiz'],
           summary: 'Get sessions by topic',
           description: 'Retrieve all quiz sessions for a specific topic',
           parameters: [
@@ -596,7 +596,7 @@ const options = {
       },
       '/api/quiz/{sessionId}': {
         get: {
-          tags: ['Quiz UI'],
+          tags: ['Quiz'],
           summary: 'Get quiz by session ID',
           description: 'Retrieve quiz questions and metadata for a specific session. Used by the quiz UI to display questions.',
           parameters: [
@@ -655,7 +655,7 @@ const options = {
       },
       '/api/quiz/{sessionId}/answer': {
         post: {
-          tags: ['Quiz UI'],
+          tags: ['Quiz'],
           summary: 'Submit an answer for a question',
           description: 'Submit user answers for a specific question in the quiz. Returns immediate feedback with scoring and correct answers.',
           parameters: [
@@ -740,7 +740,7 @@ const options = {
       },
       '/api/quiz/{sessionId}/finish': {
         post: {
-          tags: ['Quiz UI'],
+          tags: ['Quiz'],
           summary: 'Finish the quiz and get final score',
           description: 'Complete the quiz session and calculate final weighted score using geometric progression. Returns detailed score report with breakdown per question.',
           parameters: [
