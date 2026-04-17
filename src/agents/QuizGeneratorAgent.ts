@@ -5,12 +5,24 @@ import { LLMOrchestrator } from '../llm/LLMOrchestrator.js';
 import { EmbeddedChunk } from '../rag/Embedder.js';
 import { Logger } from '../utils/logger.js';
 import { QuizSchema } from '../types/index.js';
+import { getPromptVersion, CURRENT_VERSION, renderUserPrompt } from '../prompts/quiz-generation.js';
 
 export interface QuizGeneratorConfig {
   minQuestions: number;
   maxQuestions: number;
   answersPerQuestion: number;
   maxRetries: number;
+}
+
+export interface QuizGenerationResult {
+  quiz: Quiz;
+  model: string;
+  usage: {
+    promptTokens: number;
+    completionTokens: number;
+    totalTokens: number;
+  };
+  promptVersion: string;
 }
 
 export class QuizGeneratorAgent {
@@ -23,33 +35,45 @@ export class QuizGeneratorAgent {
     this.logger = new Logger('QuizGenerator');
   }
 
-  async generate(chunks: EmbeddedChunk[], sourceUrl: Url, topic: string): Promise<Quiz> {
+  async generate(chunks: EmbeddedChunk[], sourceUrl: Url, topic: string): Promise<QuizGenerationResult> {
     this.logger.info(`Generating quiz for topic: ${topic}`);
 
+    const promptVersion = getPromptVersion(CURRENT_VERSION);
     const context = this.buildContext(chunks);
-    const prompt = this.buildPrompt(context, topic);
+    const userPrompt = renderUserPrompt(promptVersion.userPromptTemplate, {
+      topic,
+      context,
+      minQuestions: this.config.minQuestions.toString(),
+      maxQuestions: this.config.maxQuestions.toString()
+    });
 
     let lastError: Error | null = null;
 
     for (let attempt = 1; attempt <= this.config.maxRetries; attempt++) {
       try {
-        this.logger.info(`Generation attempt ${attempt}/${this.config.maxRetries}`);
+        this.logger.info(`Generation attempt ${attempt}/${this.config.maxRetries} (prompt: ${CURRENT_VERSION})`);
 
         const response = await this.llm.generate([
           {
             role: 'system',
-            content: this.getSystemPrompt()
+            content: promptVersion.systemPrompt
           },
           {
             role: 'user',
-            content: prompt
+            content: userPrompt
           }
         ], 0.7);
 
         const quiz = this.parseAndValidate(response.content, sourceUrl, topic);
 
-        this.logger.success(`Quiz generated with ${quiz.getQuestionCount()} questions`);
-        return quiz;
+        this.logger.success(`Quiz generated with ${quiz.getQuestionCount()} questions using ${response.model}`);
+
+        return {
+          quiz,
+          model: response.model,
+          usage: response.usage || { promptTokens: 0, completionTokens: 0, totalTokens: 0 },
+          promptVersion: CURRENT_VERSION
+        };
       } catch (error) {
         lastError = error instanceof Error ? error : new Error(String(error));
         this.logger.warn(`Attempt ${attempt} failed: ${lastError.message}`);
@@ -63,41 +87,6 @@ export class QuizGeneratorAgent {
     return chunks
       .map((chunk, i) => `[Chunk ${i + 1}]\n${chunk.content}`)
       .join('\n\n');
-  }
-
-  private getSystemPrompt(): string {
-    return `You are an expert quiz generator. Create high-quality, educational quizzes based on the provided content.
-
-Requirements:
-- Generate ${this.config.minQuestions}-${this.config.maxQuestions} questions
-- Each question must have exactly ${this.config.answersPerQuestion} answer options
-- Mark correct answers with their indices (0-3)
-- Support both single-choice and multiple-choice questions
-- Include explanations for correct answers
-- Ensure questions test understanding, not just memorization
-
-Output ONLY valid JSON matching this structure:
-{
-  "questions": [
-    {
-      "question": "string (min 10 chars)",
-      "answers": ["option1", "option2", "option3", "option4"],
-      "correctAnswers": [0],
-      "isMultipleChoice": false,
-      "explanation": "optional explanation"
-    }
-  ],
-  "topic": "string",
-  "sourceUrl": "string"
-}`;
-  }
-
-  private buildPrompt(context: string, topic: string): string {
-    return `Generate a quiz about "${topic}" based on the following content:
-
-${context}
-
-Create ${this.config.minQuestions}-${this.config.maxQuestions} challenging questions that test deep understanding of the material.`;
   }
 
   private parseAndValidate(content: string, sourceUrl: Url, topic: string): Quiz {

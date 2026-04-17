@@ -18,6 +18,7 @@ async function startCLIMode(url: string) {
 async function startServerMode() {
   const orchestrator = ServiceFactory.createOrchestrator();
   const database = ServiceFactory.createDatabase();
+  const quizUIService = ServiceFactory.createQuizUIService();
 
   await database.initialize();
 
@@ -25,13 +26,17 @@ async function startServerMode() {
   const server = new Server(
     { port },
     orchestrator,
-    database
+    database,
+    quizUIService
   );
 
   await server.start();
 
   logger.info('API Endpoints:');
   logger.info('  POST /api/quiz/generate - Generate quiz from URL');
+  logger.info('  GET  /api/quiz/:sessionId - Get quiz questions');
+  logger.info('  POST /api/quiz/:sessionId/answer - Submit answer for a question');
+  logger.info('  POST /api/quiz/:sessionId/finish - Finish quiz and calculate final score');
   logger.info('  GET  /api/sessions - Get all quiz sessions');
   logger.info('  GET  /api/sessions/:id - Get specific session');
   logger.info('  GET  /api/sessions/topic/:topic - Get sessions by topic');

@@ -11,6 +11,7 @@ import { DatabaseService } from '../database/DatabaseService.js';
 import { LLMOrchestrator } from '../llm/LLMOrchestrator.js';
 import { QuizEvaluator } from '../evaluation/QuizEvaluator.js';
 import { QuizOrchestrator } from './QuizOrchestrator.js';
+import { QuizUIService } from './QuizUIService.js';
 
 export class ServiceFactory {
   static createInputGuard(): InputGuard {
@@ -96,6 +97,13 @@ export class ServiceFactory {
       this.createScorer(),
       this.createDatabase(),
       this.createEvaluator()
+    );
+  }
+
+  static createQuizUIService(): QuizUIService {
+    return new QuizUIService(
+      this.createDatabase(),
+      this.createScorer()
     );
   }
 }

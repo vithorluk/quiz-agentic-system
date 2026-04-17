@@ -4,6 +4,7 @@ import swaggerUi from 'swagger-ui-express';
 import { createRouter } from './routes.js';
 import { swaggerSpec } from './swagger.js';
 import { QuizOrchestrator } from '../application/QuizOrchestrator.js';
+import { QuizUIService } from '../application/QuizUIService.js';
 import { DatabaseService } from '../database/DatabaseService.js';
 import { Logger } from '../utils/logger.js';
 
@@ -19,7 +20,8 @@ export class Server {
   constructor(
     private config: ServerConfig,
     private orchestrator: QuizOrchestrator,
-    private database: DatabaseService
+    private database: DatabaseService,
+    private quizUIService: QuizUIService
   ) {
     this.app = express();
     this.logger = new Logger('Server');
@@ -63,7 +65,7 @@ export class Server {
   }
 
   private setupRoutes(): void {
-    const router = createRouter(this.orchestrator, this.database);
+    const router = createRouter(this.orchestrator, this.database, this.quizUIService);
     this.app.use(router);
 
     this.app.use((req: Request, res: Response) => {

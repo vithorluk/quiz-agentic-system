@@ -11,6 +11,7 @@ import { QuizEvaluator, EvaluationMetrics } from '../evaluation/QuizEvaluator.js
 import { Quiz } from '../domain/entities/Quiz.js';
 import { QuizSession } from '../domain/entities/QuizSession.js';
 import { Logger } from '../utils/logger.js';
+import { CostTracker } from '../llmops/CostTracker.js';
 
 export interface QuizResult {
   quiz: Quiz;
@@ -20,6 +21,7 @@ export interface QuizResult {
 
 export class QuizOrchestrator {
   private logger: Logger;
+  private costTracker: CostTracker;
 
   constructor(
     private inputGuard: InputGuard,
@@ -34,10 +36,13 @@ export class QuizOrchestrator {
     private evaluator: QuizEvaluator
   ) {
     this.logger = new Logger('Orchestrator');
+    this.costTracker = new CostTracker();
   }
 
   async generateQuiz(rawUrl: string): Promise<QuizResult> {
     this.logger.info('Starting quiz generation pipeline');
+
+    const startTime = Date.now();
 
     const url = await this.inputGuard.validate(rawUrl);
 
@@ -55,20 +60,36 @@ export class QuizOrchestrator {
 
     const topChunks = embeddedChunks.slice(0, 10);
 
-    const quiz = await this.quizGenerator.generate(topChunks, url, topic);
+    const generationResult = await this.quizGenerator.generate(topChunks, url, topic);
 
-    const evaluation = this.evaluator.evaluate(quiz, fetchedContent.content);
+    const latency = Date.now() - startTime;
+
+    const cost = this.costTracker.calculate(generationResult.model, generationResult.usage);
+
+    this.logger.info(`💰 Cost: $${cost.toFixed(4)}, ⏱️  Latency: ${latency}ms, 🤖 Model: ${generationResult.model}`);
+
+    const evaluation = this.evaluator.evaluate(generationResult.quiz, fetchedContent.content);
 
     if (!evaluation.passed) {
       this.logger.warn('Quiz failed quality evaluation but will proceed');
     }
 
-    // Save generated quiz to database
-    const sessionId = await this.database.saveGeneratedQuiz(quiz);
+    const sessionId = await this.database.saveGeneratedQuiz(generationResult.quiz);
+
+    await this.database.saveMetrics(sessionId, {
+      cost,
+      latency,
+      model: generationResult.model,
+      promptTokens: generationResult.usage.promptTokens,
+      completionTokens: generationResult.usage.completionTokens,
+      totalTokens: generationResult.usage.totalTokens,
+      qualityScore: evaluation.overallScore,
+      promptVersion: generationResult.promptVersion
+    });
 
     this.logger.success('Quiz generation pipeline completed');
 
-    return { quiz, evaluation, sessionId };
+    return { quiz: generationResult.quiz, evaluation, sessionId };
   }
 
   async runFullPipeline(rawUrl: string): Promise<QuizResult> {

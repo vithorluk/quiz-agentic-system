@@ -1,7 +1,7 @@
 import Database from 'better-sqlite3';
 import { drizzle, BetterSQLite3Database } from 'drizzle-orm/better-sqlite3';
 import { v4 as uuidv4 } from 'uuid';
-import { quizSessions, quizAnswers } from './schema.js';
+import { quizSessions, quizAnswers, quizQuestions } from './schema.js';
 import { QuizSession } from '../domain/entities/QuizSession.js';
 import { Quiz } from '../domain/entities/Quiz.js';
 import { ScoreReport } from '../agents/ScorerAgent.js';
@@ -45,7 +45,15 @@ export class DatabaseService {
         wrong_count INTEGER NOT NULL,
         partial_count INTEGER NOT NULL,
         total_questions INTEGER NOT NULL,
-        created_at INTEGER NOT NULL
+        created_at INTEGER NOT NULL,
+        cost REAL,
+        latency INTEGER,
+        model TEXT,
+        prompt_tokens INTEGER,
+        completion_tokens INTEGER,
+        total_tokens INTEGER,
+        quality_score REAL,
+        prompt_version TEXT
       )
     `);
 
@@ -65,6 +73,20 @@ export class DatabaseService {
       )
     `);
 
+    this.sqlite.exec(`
+      CREATE TABLE IF NOT EXISTS quiz_questions (
+        id TEXT PRIMARY KEY,
+        session_id TEXT NOT NULL,
+        question_index INTEGER NOT NULL,
+        question_text TEXT NOT NULL,
+        answers TEXT NOT NULL,
+        correct_answers TEXT NOT NULL,
+        is_multiple_choice INTEGER NOT NULL,
+        explanation TEXT,
+        FOREIGN KEY (session_id) REFERENCES quiz_sessions(id) ON DELETE CASCADE
+      )
+    `);
+
     this.logger.success('Database tables created');
   }
 
@@ -76,8 +98,8 @@ export class DatabaseService {
     // Insert session with default scores (0 - quiz not yet answered)
     const sessionStmt = this.sqlite.prepare(`
       INSERT INTO quiz_sessions (
-        id, url, topic, topic_slug, final_score, percentage, 
-        correct_count, wrong_count, partial_count, 
+        id, url, topic, topic_slug, final_score, percentage,
+        correct_count, wrong_count, partial_count,
         total_questions, created_at
       ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     `);
@@ -95,6 +117,28 @@ export class DatabaseService {
       quiz.getQuestionCount(),
       Date.now()
     );
+
+    // Save quiz questions
+    const questionStmt = this.sqlite.prepare(`
+      INSERT INTO quiz_questions (
+        id, session_id, question_index, question_text,
+        answers, correct_answers, is_multiple_choice, explanation
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+    `);
+
+    for (let i = 0; i < quiz.getQuestionCount(); i++) {
+      const question = quiz.getQuestion(i);
+      questionStmt.run(
+        uuidv4(),
+        sessionId,
+        i,
+        question.text,
+        JSON.stringify(question.answers),
+        JSON.stringify(question.correctAnswers),
+        question.isMultipleChoice ? 1 : 0,
+        question.explanation || null
+      );
+    }
 
     this.logger.success(`Generated quiz saved: ${sessionId}`);
 
@@ -198,5 +242,125 @@ export class DatabaseService {
       .from(quizSessions)
       .where(eq(quizSessions.topicSlug, topicSlug))
       .all();
+  }
+
+  async getQuizQuestions(sessionId: string): Promise<any[]> {
+    return this.db
+      .select()
+      .from(quizQuestions)
+      .where(eq(quizQuestions.sessionId, sessionId))
+      .all();
+  }
+
+  async saveAnswer(
+    sessionId: string,
+    questionIndex: number,
+    questionText: string,
+    userAnswers: number[],
+    correctAnswers: number[],
+    score: number,
+    weight: number,
+    isCorrect: boolean,
+    isPartial: boolean
+  ): Promise<string> {
+    const answerId = uuidv4();
+
+    const answerStmt = this.sqlite.prepare(`
+      INSERT INTO quiz_answers (
+        id, session_id, question_index, question_text,
+        user_answers, correct_answers, score, weight,
+        is_correct, is_partial
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+    `);
+
+    answerStmt.run(
+      answerId,
+      sessionId,
+      questionIndex,
+      questionText,
+      JSON.stringify(userAnswers),
+      JSON.stringify(correctAnswers),
+      score,
+      weight,
+      isCorrect ? 1 : 0,
+      isPartial ? 1 : 0
+    );
+
+    this.logger.info(`Answer saved for session ${sessionId}, question ${questionIndex}`);
+
+    return answerId;
+  }
+
+  async updateSessionScore(
+    sessionId: string,
+    finalScore: number,
+    percentage: number,
+    correctCount: number,
+    wrongCount: number,
+    partialCount: number
+  ): Promise<void> {
+    const updateStmt = this.sqlite.prepare(`
+      UPDATE quiz_sessions
+      SET final_score = ?, percentage = ?, correct_count = ?,
+          wrong_count = ?, partial_count = ?
+      WHERE id = ?
+    `);
+
+    updateStmt.run(
+      finalScore,
+      percentage,
+      correctCount,
+      wrongCount,
+      partialCount,
+      sessionId
+    );
+
+    this.logger.success(`Session score updated: ${sessionId}`);
+  }
+
+  async saveMetrics(
+    sessionId: string,
+    metrics: {
+      cost: number;
+      latency: number;
+      model: string;
+      promptTokens: number;
+      completionTokens: number;
+      totalTokens: number;
+      qualityScore: number;
+      promptVersion: string;
+    }
+  ): Promise<void> {
+    const updateStmt = this.sqlite.prepare(`
+      UPDATE quiz_sessions
+      SET cost = ?, latency = ?, model = ?, prompt_tokens = ?,
+          completion_tokens = ?, total_tokens = ?, quality_score = ?,
+          prompt_version = ?
+      WHERE id = ?
+    `);
+
+    updateStmt.run(
+      metrics.cost,
+      metrics.latency,
+      metrics.model,
+      metrics.promptTokens,
+      metrics.completionTokens,
+      metrics.totalTokens,
+      metrics.qualityScore,
+      metrics.promptVersion,
+      sessionId
+    );
+
+    this.logger.info(`Metrics saved for session: ${sessionId}`);
+  }
+
+  async getSessionsSince(timestamp: number): Promise<any[]> {
+    const stmt = this.sqlite.prepare(`
+      SELECT * FROM quiz_sessions
+      WHERE created_at >= ?
+      ORDER BY created_at DESC
+    `);
+
+    return stmt.all(timestamp);
   }
 }
